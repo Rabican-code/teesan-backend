@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 class ApiController extends Controller
     // Add a new category
 {
@@ -38,6 +39,15 @@ class ApiController extends Controller
     public function stores()
     {
         $stores = Store::all();
+
+        // Add full image URLs to stores
+        $stores->transform(function ($store) {
+            if ($store->store_image) {
+                $store->store_image = asset("/api/images/stores/" . $store->store_image);
+            }
+            return $store;
+        });
+
         Log::info('Fetching stores:', $stores->toArray());
         return response()->json($stores);
     }
@@ -45,12 +55,30 @@ class ApiController extends Controller
     public function storesByCategory($id)
     {
         $category = Category::with('stores')->findOrFail($id);
+
+        // Add full image URLs to stores
+        $category->stores->transform(function ($store) {
+            if ($store->store_image) {
+                $store->store_image = asset("/api/images/stores/" . $store->store_image);
+            }
+            return $store;
+        });
+
         return response()->json($category->stores);
     }
     // Fetch products for a given store
     public function storeProducts($id)
     {
         $store = Store::with('products')->findOrFail($id);
+
+        // Add full image URLs to products
+        $store->products->transform(function ($product) {
+            if ($product->product_image) {
+                $product->product_image = asset("/api/images/products/" . $product->product_image);
+            }
+            return $product;
+        });
+
         return response()->json($store->products);
     }
 
@@ -104,16 +132,21 @@ class ApiController extends Controller
         Log::info('addOrder called', ['body' => $request->all()]);
         $validated = $request->validate([
             'user_id' => 'nullable|integer|exists:users,id',
+            'store_id' => 'required|integer|exists:stores,id',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|integer|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'total' => 'required|numeric',
+            'order_id' => 'required|string|unique:orders,order_id',
         ]);
 
         Log::info('Validated order', $validated);
         $order = Order::create([
             'user_id' => $validated['user_id'] ?? null,
+            'store_id' => $validated['store_id'],
             'total' => $validated['total'],
+            'order_id' => $validated['order_id'],
+            'order_status' => 'Order Placed',
         ]);
         Log::info('Order created', ['order' => $order]);
 
@@ -128,15 +161,41 @@ class ApiController extends Controller
     // Retrieve all orders with their products
     public function getOrders()
     {
-        $orders = Order::with('products')->get();
-        return response()->json($orders);
+        $orders = Order::with(['products', 'deliveryPartner', 'user', 'store'])->get();
+
+        $formatted = $orders->map(function ($order) {
+            return [
+                'order_id' => $order->order_id,
+                'store' => $order->store?->name ?? 'N/A',
+                'status' => $order->order_status,
+                'partner' => $order->deliveryPartner?->name ?? 'No Partner',
+                'client' => $order->user?->name ?? 'Guest',
+                'date' => $order->created_at->format('Y-m-d'),
+                'amount' => number_format($order->total, 2),
+                'accepted_at' => $order->accepted_at,
+                'in_transit_at' => $order->in_transit_at,
+                'completed_at' => $order->completed_at,
+                'payment_method' => $order->payment_method,
+            ];
+        });
+
+        return response()->json($formatted);
     }
 
     // Retrieve all users
-    public function getUsers()
+    public function getDrivers()
     {
-        $users = User::all();
-        return response()->json($users);
+        $drivers = \App\Models\Driver::where('active', true)->get();
+
+        // Add full image URLs to drivers
+        $drivers->transform(function ($driver) {
+            if ($driver->image) {
+                $driver->image = asset("/api/images/drivers/" . $driver->image);
+            }
+            return $driver;
+        });
+
+        return response()->json($drivers);
     }
 
     // Get the currently authenticated user
@@ -160,7 +219,24 @@ class ApiController extends Controller
         }
 
         $stores = Store::where('name', 'LIKE', "%{$query}%")->get();
+
+        // Add full image URLs to stores
+        $stores->transform(function ($store) {
+            if ($store->store_image) {
+                $store->store_image = asset("/api/images/stores/" . $store->store_image);
+            }
+            return $store;
+        });
+
         $products = Product::with('stores')->where('name', 'LIKE', "%{$query}%")->get();
+
+        // Add full image URLs to products
+        $products->transform(function ($product) {
+            if ($product->product_image) {
+                $product->product_image = asset("/api/images/products/" . $product->product_image);
+            }
+            return $product;
+        });
 
         return response()->json(['stores' => $stores, 'products' => $products]);
     }

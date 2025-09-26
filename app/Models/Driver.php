@@ -10,6 +10,7 @@ class Driver extends Model
         'image',
         'name',
         'email',
+        'phone',
         'date',
         'documents',
         'active',

@@ -13,7 +13,7 @@ Route::get('/stores/{id}/products', [ApiController::class, 'storeProducts']);
 Route::get('/orders', [ApiController::class, 'getOrders']);
 Route::get('/search', [ApiController::class, 'search']);
 Route::get('/images/{type}/{filename}', [ImageController::class, 'show'])->where('filename', '.*');
-Route::get('/drivers', [AppController::class, 'getDriver']);
+Route::get('/drivers', [ApiController::class, 'getDrivers']);
 Route::get('/users', [ApiController::class, 'getUsers']);
 Route::get('/user/current', [ApiController::class, 'getCurrentUser']);
 
@@ -27,6 +27,9 @@ Route::post('/creat-drivers', [AppController::class, 'addDriver']);
 Route::get('/drivers/{id}', [AppController::class, 'editDriver']);
 
 Route::put('/drivers/{id}', [AppController::class, 'updateDriver']);
+
+Route::get('/orders', [App\Http\Controllers\AppController::class, 'getOrders']);
+
 
 Route::get('/test', function () {
     return 'test ok';

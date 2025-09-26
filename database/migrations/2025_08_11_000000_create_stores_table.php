@@ -10,6 +10,8 @@ return new class extends Migration {
         Schema::create('stores', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->integer('phone');
+            $table->string('address');
             $table->string('store_image')->nullable();
             $table->timestamps();
         });
