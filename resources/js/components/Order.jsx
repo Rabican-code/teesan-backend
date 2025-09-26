@@ -12,10 +12,9 @@ export default function Orders() {
         fetch("/api/orders")
             .then((res) => res.json())
             .then((data) => {
-                console.log("Fetched Orders:", data); // log response here
+                console.log("Fetched Orders:", data);
                 setOrders(data);
 
-                // Initialize DataTable after data is loaded
                 setTimeout(() => {
                     if (!$.fn.DataTable.isDataTable("#ordersTable")) {
                         $("#ordersTable").DataTable();
