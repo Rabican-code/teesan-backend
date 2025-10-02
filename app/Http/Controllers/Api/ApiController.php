@@ -129,38 +129,29 @@ class ApiController extends Controller
     // Add a new order
     public function addOrder(Request $request)
     {
-
-        return response()->json(['message' => 'Order created'], 201);
-
+        // Log the incoming request for debugging (optional)
         // Log::info('addOrder called', ['body' => $request->all()]);
-        // $validated = $request->validate([
-        //     'user_id' => 'nullable|integer|exists:users,id',
-        //     'store_id' => 'required|integer|exists:stores,id',
-        //     'items' => 'required|array|min:1',
-        //     'items.*.product_id' => 'required|integer|exists:products,id',
-        //     'items.*.quantity' => 'required|integer|min:1',
-        //     'total' => 'required|numeric',
-        //     'order_id' => 'required|string|unique:orders,order_id',
-        // ]);
 
-        // Log::info('Validated order', $validated);
-        // $order = Order::create([
-        //     'user_id' => $validated['user_id'] ?? null,
-        //     'store_id' => $validated['store_id'],
-        //     'total' => $validated['total'],
-        //     'order_id' => $validated['order_id'],
-        //     'order_status' => 'Order Placed',
-        // ]);
-        // Log::info('Order created', ['order' => $order]);
+        // Create the order directly
+        $order = Order::create([
+            'user_id' => $request->input('user_id'),
+            'store_id' => $request->input('store_id'),
+            'total' => $request->input('total'),
+            'order_id' => $request->input('order_id'),
+            'order_status' => 'Order Placed',
+        ]);
 
-        // // Attach products to the order with quantities
-        // foreach ($validated['items'] as $item) {
-        //     $order->products()->attach($item['product_id'], ['quantity' => $item['quantity']]);
-        // }
-        // Log::info('Products attached to order', ['order_id' => $order->id]);
+        // Attach products to the order with quantities
+        foreach ($request->input('items', []) as $item) {
+            $order->products()->attach($item['product_id'], [
+                'quantity' => $item['quantity'],
+            ]);
+        }
 
-        // return response()->json($order->load('products'), 201);
+        // Return the order with attached products
+        return response()->json($order->load('products'), 201);
     }
+
     // Retrieve all orders with their products
     public function getOrders()
     {
