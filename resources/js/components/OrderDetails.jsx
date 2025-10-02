@@ -255,10 +255,7 @@ export default function OrderDetailsPage() {
                                     return (
                                         <>
                                             <DetailRow label="Name:" value={deliveryPartner.name || "Unknown"} />
-                                            <DetailRow label="Email Address:" value={deliveryPartner.email || "--"} />
                                             <DetailRow label="Phone:" value={deliveryPartner.phone || "--"} />
-                                            <DetailRow label="Car Name:" value="--" />
-                                            <DetailRow label="Car Number:" value="--" />
                                         </>
                                     );
                                 })()}
