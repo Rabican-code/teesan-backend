@@ -245,10 +245,7 @@ export default function OrderDetailsPage() {
                                         return (
                                             <>
                                                 <DetailRow label="Name:" value="No driver assigned" />
-                                                <DetailRow label="Email Address:" value="--" />
                                                 <DetailRow label="Phone:" value="--" />
-                                                <DetailRow label="Car Name:" value="--" />
-                                                <DetailRow label="Car Number:" value="--" />
                                             </>
                                         );
                                     }
