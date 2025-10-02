@@ -228,10 +228,17 @@ export default function OrderDetailsPage() {
                         <div className="bg-white p-6 rounded-lg shadow-sm">
                             <h3 className="text-lg font-semibold text-gray-800 mb-4">Billing Details</h3>
                             <div className="space-y-2 text-sm">
-                                <DetailRow label="Name:" value={user.name} />
-                                <DetailRow label="Address:" value={user.address} />
-                                <DetailRow label="Email Address:" value={user.email} />
-                                <DetailRow label="Phone:" value={user.phone} />
+                                {user ? (
+                                    <>
+                                        <DetailRow label="Name:" value={user.name} />
+                                        <DetailRow label="Address:" value={user.address} />
+                                        <DetailRow label="Email Address:" value={user.email} />
+                                        <DetailRow label="Phone:" value={user.phone} />
+                                    </>
+                                ) : (
+                                    <p className="text-sm text-gray-500">User details not available</p>
+                                )}
+
                             </div>
                         </div>
 
