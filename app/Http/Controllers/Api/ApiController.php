@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Driver;
 use App\Models\Store;
 use App\Models\Product;
 use App\Models\Order;
@@ -87,44 +88,141 @@ class ApiController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
             'price' => 'required|numeric',
+            'discount_price' => 'nullable|numeric',
+            'category_id' => 'nullable|exists:categories,id',
+            'quantity' => 'nullable|integer',
+            'description' => 'nullable|string',
+            'calories' => 'nullable|string',
+            'grams' => 'nullable|string',
+            'fats' => 'nullable|string',
+            'proteins' => 'nullable|string',
+            // 'publish' => 'boolean',
+            // 'nonVeg' => 'boolean',
+            // 'takeaway' => 'boolean',
             'store_ids' => 'array',
             'store_ids.*' => 'integer|exists:stores,id',
+            'image' => 'nullable|image|max:2048',
         ]);
 
-        $product = \App\Models\Product::create([
+        $product = new Product([
             'name' => $validated['name'],
-            'description' => $validated['description'] ?? null,
             'price' => $validated['price'],
+            'discount_price' => $validated['discount_price'] ?? null,
+            'category_id' => $validated['category_id'] ?? null,
+            'quantity' => $validated['quantity'] ?? 0,
+            'description' => $validated['description'] ?? null,
+            'calories' => $validated['calories'] ?? null,
+            'grams' => $validated['grams'] ?? null,
+            'fats' => $validated['fats'] ?? null,
+            'proteins' => $validated['proteins'] ?? null,
+            'publish' => $request->boolean('publish'),
+            'non_veg' => $request->boolean('nonVeg'),
+            'takeaway' => $request->boolean('takeaway'),
         ]);
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public');
+            $product->product_image = $path;
+        }
+
+        $product->save();
 
         if (!empty($validated['store_ids'])) {
             $product->stores()->attach($validated['store_ids']);
         }
 
-        return response()->json($product->load('stores'), 201);
+        return response()->json($product->load(['stores', 'category']), 201);
     }
 
     // Add a new store
     public function addStore(Request $request)
     {
         $validated = $request->validate([
+            // Admin Config
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:6',
+            'admin_phone' => 'nullable|string|max:20',
+            'image' => 'nullable|file|image|mimes:jpg,jpeg,png|max:2048',
+
+            // Store Details
             'name' => 'required|string|max:255',
             'category_ids' => 'array',
             'category_ids.*' => 'integer|exists:categories,id',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:500',
+
+            // Location
+            'zone' => 'nullable|string|max:100',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'description' => 'nullable|string',
+
+            // Services (checkboxes)
+            'services' => 'array',
+            // 'services.*' => 'boolean',
+
+            // Delivery
+            'delivery_charge' => 'nullable|numeric',
+            'min_delivery_charge' => 'nullable|numeric',
+            'min_delivery_km' => 'nullable|numeric',
+
+            // Toggles
+            // 'active' => 'boolean',
+            // 'dine_in' => 'boolean',
+            // 'special_discount' => 'boolean',
         ]);
 
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('stores', 'public');
+        }
+
+        // Create the store
         $store = Store::create([
             'name' => $validated['name'],
+            'phone' => $validated['phone'] ?? null,
+            'address' => $validated['address'] ?? null,
+            'zone' => $validated['zone'] ?? null,
+            'latitude' => $validated['latitude'] ?? null,
+            'longitude' => $validated['longitude'] ?? null,
+            'description' => $validated['description'] ?? null,
+            'store_image' => $validated['image'] ?? null,
+            'delivery_charge' => $validated['delivery_charge'] ?? 0,
+            'min_delivery_charge' => $validated['min_delivery_charge'] ?? 0,
+            'min_delivery_km' => $validated['min_delivery_km'] ?? 0,
+            'active' => $validated['active'] ?? true,
+            'dine_in' => $validated['dine_in'] ?? false,
+            'special_discount' => $validated['special_discount'] ?? false,
+            'services' => json_encode($validated['services'] ?? []),
         ]);
 
+        // Attach categories if provided
         if (!empty($validated['category_ids'])) {
             $store->categories()->attach($validated['category_ids']);
         }
 
-        return response()->json($store->load('categories'), 201);
+        // Optionally: create an admin user for this store
+        $user = \App\Models\User::create([
+            'name' => $validated['first_name'] . ' ' . $validated['last_name'],
+            'email' => $validated['email'],
+            'password' => bcrypt($validated['password']),
+            'phone' => $validated['phone'] ?? null,
+        ]);
+
+        // You could link the user to the store if you have a relation
+        // $store->user_id = $user->id;
+        // $store->save();
+
+        return response()->json([
+            'message' => 'Store created successfully',
+            'store' => $store->load('categories'),
+            'admin' => $user,
+        ], 201);
     }
+
 
     // Add a new order
     public function addOrder(Request $request)
@@ -234,4 +332,76 @@ class ApiController extends Controller
 
         return response()->json(['stores' => $stores, 'products' => $products]);
     }
+
+    public function addDriver(Request $request)
+    {
+        $validated = $request->validate([
+            'image' => 'nullable|file|image|mimes:jpg,jpeg,png|max:2048',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:drivers,email',
+            'phone' => 'nullable|string|max:20',
+            'date' => 'nullable|date',
+            'documents' => 'nullable|array',
+            // 'active' => 'boolean',
+            // 'online' => 'boolean',
+            'wallet_history' => 'nullable|array',
+            'total_orders' => 'integer|min:0',
+        ]);
+
+        $driver = Driver::create($validated);
+
+        return response()->json([
+            'message' => 'Driver created successfully',
+            'driver' => $driver
+        ], 201);
+    }
+    public function getProducts()
+    {
+        $products = Product::with(['stores', 'category'])->get();
+
+        $formatted = $products->map(function ($product) {
+            // Combine all store names
+            $storeNames = $product->stores->pluck('name')->unique()->join(', ');
+
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'price' => number_format($product->price, 2),
+                'image' => $product->product_image ?? null,
+                'store' => $storeNames ?: 'N/A',
+                'category' => $product->category->name ?? 'N/A',
+                'is_published' => $product->is_published ? 'Yes' : 'No',
+            ];
+        });
+
+        return response()->json($formatted);
+    }
+
+
+
+    public function getStores()
+    {
+        $stores = Store::select('id', 'name', 'phone', 'store_image', 'created_at', 'updated_at', 'address')->get();
+
+        $formatted = $stores->map(function ($store) {
+            return [
+                'id' => $store->id,
+                'name' => $store->name,
+                'phone' => $store->phone ?? 'N/A',
+                'store_name' => $store->name,
+                'created_at' => $store->created_at ? $store->created_at->format('Y-m-d') : 'N/A',
+                'updated_at' => $store->updated_at ? $store->updated_at->format('Y-m-d') : 'N/A',
+                'address' => $store->address ?? 'N/A',
+                'image' => $store->store_image
+                    ? asset('storage/' . $store->store_image)
+                    : 'https://via.placeholder.com/80?text=No+Image',
+                'wallet_history' => null,
+                'products' => 0,
+                'orders' => 0,
+            ];
+        });
+
+        return response()->json($formatted->values());
+    }
+
 }

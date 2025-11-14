@@ -52,7 +52,7 @@ export default function Sidebar({ children }) {
                 <nav className="flex-1 space-y-2 mt-4">
                     <NavItem to="/" icon={<HomeIcon />} label="Dashboard" open={isSidebarOpen} active={url === "/"} />
                     <NavItem to="/godseye" icon={<Eye />} label="God's Eye" open={isSidebarOpen} active={url.startsWith("/godseye")} />
-                    <NavItem to="/store" icon={<Store />} label="Store" open={isSidebarOpen} active={url.startsWith("/store")} />
+                    <NavItem to="/stores" icon={<Store />} label="Store" open={isSidebarOpen} active={url.startsWith("/store")} />
                     <NavItem to="/drivers" icon={<Users />} label="Drivers" open={isSidebarOpen} active={url.startsWith("/drivers")} />
                     <NavItem to="/products" icon={<Package />} label="Products" open={isSidebarOpen} active={url.startsWith("/products")} />
                     <NavItem to="/attributes" icon={<PlusSquare />} label="Attributes" open={isSidebarOpen} active={url.startsWith("/attributes")} />

@@ -11,7 +11,9 @@ class Store extends Model
 
     protected $fillable = [
         'name',
-        'store_image'
+        'store_image',
+        'phone',
+        'address'
     ];
 
     public function categories()

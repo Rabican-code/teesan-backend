@@ -2,42 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\Driver;
 use App\Models\Order;
+use App\Models\Product;
+use App\Models\Store;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class AppController extends Controller
 {
-    public function addDriver(Request $request)
-    {
-        $validated = $request->validate([
-            'image' => 'nullable|string|max:255',
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:drivers,email',
-            'phone' => 'nullable|string|max:20',
-            'date' => 'nullable|date',
-            'documents' => 'nullable|array',
-            'active' => 'boolean',
-            'online' => 'boolean',
-            'wallet_history' => 'nullable|array',
-            'total_orders' => 'integer|min:0',
-        ]);
-
-        $driver = Driver::create($validated);
-
-        return response()->json([
-            'message' => 'Driver created successfully',
-            'driver' => $driver
-        ], 201);
-    }
-
-    public function getDrivers()
-    {
-        $drivers = Driver::all();
-        return response()->json($drivers);
-    }
 
     public function editDriver($id)
     {
@@ -221,6 +196,146 @@ class AppController extends Controller
         return back()->with([
             'success' => 'Order status updated successfully',
             'updated_order' => $order,
+        ]);
+    }
+
+
+    public function createProduct()
+    {
+        $stores = Store::select('id', 'name')->get();
+        $categories = Category::select('id', 'name')->get();
+
+        return Inertia::render('CreateProduct', [
+            'stores' => $stores,
+            'categories' => $categories,
+        ]);
+    }
+
+    public function editProduct($product_id)
+    {
+        $product = Product::with('stores')->findOrFail($product_id);
+        $stores = Store::select('id', 'name')->get();
+        $categories = Category::select('id', 'name')->get();
+
+        return Inertia::render('EditProduct', [
+            'product' => $product,
+            'stores' => $stores,
+            'categories' => $categories,
+        ]);
+    }
+
+    public function updateProduct(Request $request, $product_id)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric',
+            'discount_price' => 'nullable|numeric',
+            'category_id' => 'nullable|exists:categories,id',
+            'quantity' => 'nullable|integer',
+            'description' => 'nullable|string',
+            'calories' => 'nullable|string',
+            'grams' => 'nullable|string',
+            'fats' => 'nullable|string',
+            'proteins' => 'nullable|string',
+            // 'publish' => 'boolean',
+            // 'nonVeg' => 'boolean',
+            // 'takeaway' => 'boolean',
+            'store_ids' => 'array',
+            'store_ids.*' => 'integer|exists:stores,id',
+            'image' => 'nullable|image|max:2048',
+        ]);
+
+        $product = Product::findOrFail($product_id);
+        $product->fill([
+            'name' => $validated['name'],
+            'price' => $validated['price'],
+            'discount_price' => $validated['discount_price'] ?? null,
+            'category_id' => $validated['category_id'] ?? null,
+            'quantity' => $validated['quantity'] ?? 0,
+            'description' => $validated['description'] ?? null,
+            'calories' => $validated['calories'] ?? null,
+            'grams' => $validated['grams'] ?? null,
+            'fats' => $validated['fats'] ?? null,
+            'proteins' => $validated['proteins'] ?? null,
+            'publish' => $request->boolean('publish'),
+            'non_veg' => $request->boolean('nonVeg'),
+            'takeaway' => $request->boolean('takeaway'),
+        ]);
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public');
+            $product->product_image = $path;
+        }
+
+        $product->save();
+
+        $product->stores()->sync($validated['store_ids'] ?? []);
+
+        return redirect()->back()->with('success', 'Product updated successfully!');
+    }
+
+    public function editStore($product_id)
+    {
+        $store = Store::findOrFail($product_id);
+
+        return Inertia::render('EditStore', [
+            'store' => $store,
+        ]);
+    }
+
+    public function updateStore(Request $request, $id)
+    {
+        $store = Store::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'category_ids' => 'array',
+            'category_ids.*' => 'integer|exists:categories,id',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:500',
+            'zone' => 'nullable|string|max:100',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'description' => 'nullable|string',
+            'services' => 'array',
+            'delivery_charge' => 'nullable|numeric',
+            'min_delivery_charge' => 'nullable|numeric',
+            'min_delivery_km' => 'nullable|numeric',
+            // 'active' => 'nullable|boolean',
+            // 'dine_in' => 'nullable|boolean',
+            // 'special_discount' => 'nullable|boolean',
+            'image' => 'nullable|file|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        if ($request->hasFile('image')) {
+            $validated['store_image'] = $request->file('image')->store('stores', 'public');
+        }
+
+        $store->update([
+            'name' => $validated['name'],
+            'phone' => $validated['phone'] ?? $store->phone,
+            'address' => $validated['address'] ?? $store->address,
+            'zone' => $validated['zone'] ?? $store->zone,
+            'latitude' => $validated['latitude'] ?? $store->latitude,
+            'longitude' => $validated['longitude'] ?? $store->longitude,
+            'description' => $validated['description'] ?? $store->description,
+            'store_image' => $validated['store_image'] ?? $store->store_image,
+            'delivery_charge' => $validated['delivery_charge'] ?? $store->delivery_charge,
+            'min_delivery_charge' => $validated['min_delivery_charge'] ?? $store->min_delivery_charge,
+            'min_delivery_km' => $validated['min_delivery_km'] ?? $store->min_delivery_km,
+            // 'active' => $validated['active'] ?? $store->active,
+            'dine_in' => $validated['dine_in'] ?? $store->dine_in,
+            'special_discount' => $validated['special_discount'] ?? $store->special_discount,
+            'services' => json_encode($validated['services'] ?? json_decode($store->services, true)),
+        ]);
+
+        if (!empty($validated['category_ids'])) {
+            $store->categories()->sync($validated['category_ids']);
+        }
+
+        return response()->json([
+            'message' => 'Store updated successfully',
+            'store' => $store->load('categories'),
         ]);
     }
 

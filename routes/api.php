@@ -14,6 +14,7 @@ Route::middleware('cors')->group(function () {
     Route::get('/search', [ApiController::class, 'search']);
     Route::get('/images/{type}/{filename}', [ImageController::class, 'show'])->where('filename', '.*');
     Route::get('/drivers', [ApiController::class, 'getDrivers']);
+    Route::get('/products', [ApiController::class, 'getProducts']);
     Route::get('/users', [ApiController::class, 'getUsers']);
     Route::get('/user/current', [ApiController::class, 'getCurrentUser']);
 
@@ -21,15 +22,14 @@ Route::middleware('cors')->group(function () {
     Route::post('/create-stores', [ApiController::class, 'addStore']);
     Route::post('/create-categories', [ApiController::class, 'addCategory']);
     Route::post('/create-orders', [ApiController::class, 'addOrder']);
-    Route::post('/creat-drivers', [AppController::class, 'addDriver']);
-
-
+    Route::post('/creat-drivers', [ApiController::class, 'addDriver']);
     Route::get('/drivers/{id}', [AppController::class, 'editDriver']);
 
     Route::put('/drivers/{id}', [AppController::class, 'updateDriver']);
 
     Route::get('/orders', [App\Http\Controllers\AppController::class, 'getOrders']);
 
+    Route::get('/stores', [ApiController::class, 'getStores']);
 
     Route::get('/test', function () {
         return 'test ok';
